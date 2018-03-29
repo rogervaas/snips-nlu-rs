@@ -110,30 +110,30 @@ typedef struct CIntentParserResult{
 
 typedef struct Opaque Opaque;
 
-typedef enum NLURESULT {
-	KO = 0,
-	OK = 1,
-} NLURESULT;
+typedef enum SNIPS_RESULT {
+	SNIPS_RESULT_KO = 0,
+	SNIPS_RESULT_OK = 1,
+} SNIPS_RESULT;
 
-NLURESULT nlu_engine_create_from_file(char const* file_path, Opaque** client);
+NLURESULT snips_nlu_create_from_file(char const* file_path, Opaque** client);
 
-NLURESULT nlu_engine_create_from_dir(char const* root_dir, Opaque** client);
+NLURESULT snips_nlu_create_from_dir(char const* root_dir, Opaque** client);
 
-NLURESULT nlu_engine_create_from_zip(unsigned char const* zip, unsigned int zip_size, Opaque** client);
+NLURESULT snips_nlu_create_from_zip(unsigned char const* zip, unsigned int zip_size, Opaque** client);
 
-NLURESULT nlu_engine_run_parse(Opaque const* client, char const* input, CIntentParserResult** result);
+NLURESULT snips_nlu_run_parse(Opaque const* client, char const* input, CIntentParserResult** result);
 
-NLURESULT nlu_engine_run_parse_into_json(Opaque const* client, char const* input, char** result_json);
+NLURESULT snips_nlu_run_parse_into_json(Opaque const* client, char const* input, char** result_json);
 
-NLURESULT nlu_engine_destroy_string(char* string);
+NLURESULT snips_nlu_destroy_string(char* string);
 
-NLURESULT nlu_engine_destroy_client(Opaque* client);
+NLURESULT snips_nlu_destroy_client(Opaque* client);
 
-NLURESULT nlu_engine_destroy_result(CIntentParserResult* result);
+NLURESULT snips_nlu_destroy_result(CIntentParserResult* result);
 
-NLURESULT nlu_engine_get_last_error(char **error);
+NLURESULT snips_nlu_get_last_error(char **error);
 
-NLURESULT nlu_engine_get_model_version(char **version);
+NLURESULT snips_nlu_get_model_version(char **version);
 
 #ifdef __cplusplus
 }

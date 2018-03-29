@@ -1,3 +1,5 @@
+#![allow(non_camel_case_types)]
+
 #[macro_use]
 extern crate failure;
 #[macro_use]
@@ -29,15 +31,15 @@ pub struct Opaque(std::sync::Mutex<SnipsNluEngine>);
 
 #[repr(C)]
 #[derive(Debug)]
-pub enum NLURESULT {
-    KO = 0,
-    OK = 1,
+pub enum SNIPS_RESULT {
+    SNIPS_RESULT_KO = 0,
+    SNIPS_RESULT_OK = 1,
 }
 
 macro_rules! wrap {
     ($e:expr) => {
         match $e {
-            Ok(_) => NLURESULT::OK,
+            Ok(_) => SNIPS_RESULT::SNIPS_RESULT_OK,
             Err(e) => {
                 let msg = e.pretty().to_string();
                 eprintln!("{}", msg);
@@ -45,7 +47,7 @@ macro_rules! wrap {
                     Ok(mut guard) => *guard = msg,
                     Err(_) => (), /* curl up and cry */
                 }
-                NLURESULT::KO
+                SNIPS_RESULT::SNIPS_RESULT_KO
             }
         }
     };
@@ -68,82 +70,82 @@ macro_rules! get_str {
 }
 
 #[no_mangle]
-pub extern "C" fn nlu_engine_create_from_dir(
+pub extern "C" fn snips_nlu_create_from_dir(
     root_dir: *const libc::c_char,
     client: *mut *const Opaque,
-) -> NLURESULT {
+) -> SNIPS_RESULT {
     wrap!(create_from_dir(root_dir, client))
 }
 
 #[no_mangle]
-pub extern "C" fn nlu_engine_create_from_file(
+pub extern "C" fn snips_nlu_create_from_file(
     file_path: *const libc::c_char,
     client: *mut *const Opaque,
-) -> NLURESULT {
+) -> SNIPS_RESULT {
     wrap!(create_from_file(file_path, client))
 }
 
 #[no_mangle]
-pub extern "C" fn nlu_engine_create_from_zip(
+pub extern "C" fn snips_nlu_create_from_zip(
     zip: *const libc::c_uchar,
     zip_size: libc::c_uint,
     client: *mut *const Opaque,
-) -> NLURESULT {
+) -> SNIPS_RESULT {
     wrap!(create_from_zip(zip, zip_size, client))
 }
 
 #[no_mangle]
-pub extern "C" fn nlu_engine_run_parse(
+pub extern "C" fn snips_nlu_run_parse(
     client: *const Opaque,
     input: *const libc::c_char,
     result: *mut *const CIntentParserResult,
-) -> NLURESULT {
+) -> SNIPS_RESULT {
     wrap!(run_parse(client, input, result))
 }
 
 #[no_mangle]
-pub extern "C" fn nlu_engine_run_parse_into_json(
+pub extern "C" fn snips_nlu_run_parse_into_json(
     client: *const Opaque,
     input: *const libc::c_char,
     result_json: *mut *const libc::c_char,
-) -> NLURESULT {
+) -> SNIPS_RESULT {
     wrap!(run_parse_into_json(client, input, result_json))
 }
 
 #[no_mangle]
-pub extern "C" fn nlu_engine_get_last_error(error: *mut *const libc::c_char) -> NLURESULT {
+pub extern "C" fn snips_nlu_get_last_error(error: *mut *const libc::c_char) -> SNIPS_RESULT {
     wrap!(get_last_error(error))
 }
 
 #[no_mangle]
-pub extern "C" fn nlu_engine_destroy_string(string: *mut libc::c_char) -> NLURESULT {
+pub extern "C" fn snips_nlu_destroy_string(string: *mut libc::c_char) -> SNIPS_RESULT {
     unsafe {
         let _: CString = CString::from_raw(string);
     }
 
-    NLURESULT::OK
+    SNIPS_RESULT::SNIPS_RESULT_OK
 }
 
 #[no_mangle]
-pub extern "C" fn nlu_engine_destroy_client(client: *mut Opaque) -> NLURESULT {
+pub extern "C" fn snips_nlu_destroy_client(client: *mut Opaque) -> SNIPS_RESULT {
     unsafe {
         let _: Box<Opaque> = Box::from_raw(client);
     }
 
-    NLURESULT::OK
+    SNIPS_RESULT::SNIPS_RESULT_OK
 }
 
 #[no_mangle]
-pub extern "C" fn nlu_engine_destroy_result(result: *mut CIntentParserResult) -> NLURESULT {
+pub extern "C" fn snips_nlu_destroy_result(result: *mut CIntentParserResult) -> SNIPS_RESULT {
     unsafe {
         let _: Box<CIntentParserResult> = Box::from_raw(result);
     }
 
-    NLURESULT::OK
+    SNIPS_RESULT::SNIPS_RESULT_OK
 }
 
 #[no_mangle]
-pub extern "C" fn nlu_engine_get_model_version(version: *mut *const libc::c_char) -> NLURESULT {
+pub extern "C" fn snips_nlu_get_model_version(version: *mut *const libc::c_char) -> SNIPS_RESULT {
     wrap!(get_model_version(version))
 }
 
