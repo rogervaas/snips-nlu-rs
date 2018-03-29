@@ -135,6 +135,12 @@ NLURESULT nlu_engine_get_last_error(char **error);
 
 NLURESULT nlu_engine_get_model_version(char **version);
 
+NLURESULT nlu_engine_read_model_from_file(char const *file_path, char **version);
+
+NLURESULT nlu_engine_read_model_from_dir(char const *root_dir, char **version);
+
+NLURESULT nlu_engine_read_model_from_zip(unsigned char const *zip, unsigned int zip_size, char **version);
+
 #ifdef __cplusplus
 }
 #endif

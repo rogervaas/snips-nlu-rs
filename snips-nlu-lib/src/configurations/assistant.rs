@@ -12,7 +12,7 @@ use errors::*;
 const NLU_CONFIGURATION_FILENAME: &str = "trained_assistant.json";
 
 pub struct FileBasedConfiguration {
-    nlu_configuration: NluEngineConfiguration,
+    pub nlu_configuration: NluEngineConfiguration,
 }
 
 impl FileBasedConfiguration {
@@ -70,7 +70,7 @@ impl NluEngineConfigurationConvertible for FileBasedConfiguration {
 }
 
 pub struct ZipBasedConfiguration {
-    nlu_configuration: NluEngineConfiguration,
+    pub nlu_configuration: NluEngineConfiguration,
 }
 
 impl ZipBasedConfiguration {

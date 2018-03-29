@@ -147,6 +147,31 @@ pub extern "C" fn nlu_engine_get_model_version(version: *mut *const libc::c_char
     wrap!(get_model_version(version))
 }
 
+#[no_mangle]
+pub extern "C" fn nlu_engine_read_model_version_from_dir(
+    root_dir: *const libc::c_char,
+    version: *mut *const libc::c_char,
+) -> NLURESULT {
+    wrap!(read_model_version_from_dir(root_dir, version))
+}
+
+#[no_mangle]
+pub extern "C" fn nlu_engine_read_model_version_from_file(
+    file_path: *const libc::c_char,
+    version: *mut *const libc::c_char,
+) -> NLURESULT {
+    wrap!(read_model_version_from_file(file_path, version))
+}
+
+#[no_mangle]
+pub extern "C" fn nlu_engine_read_model_version_from_zip(
+    zip: *const libc::c_uchar,
+    zip_size: libc::c_uint,
+    version: *mut *const libc::c_char,
+) -> NLURESULT {
+    wrap!(read_model_version_from_zip(zip, zip_size, version))
+}
+
 fn create_from_dir(root_dir: *const libc::c_char, client: *mut *const Opaque) -> Result<()> {
     let root_dir = get_str!(root_dir);
 
@@ -224,6 +249,36 @@ fn get_last_error(error: *mut *const libc::c_char) -> Result<()> {
 
 fn get_model_version(version: *mut *const libc::c_char) -> Result<()> {
     point_to_string(version, snips_nlu_lib::MODEL_VERSION.to_string())
+}
+
+fn read_model_version_from_dir(
+    root_dir: *const libc::c_char,
+    version: *mut *const libc::c_char,
+) -> Result<()> {
+    let root_dir = get_str!(root_dir);
+    let config = FileBasedConfiguration::from_dir(root_dir, true)?;
+    point_to_string(version, config.nlu_configuration.model_version)
+}
+
+fn read_model_version_from_file(
+    file_path: *const libc::c_char,
+    version: *mut *const libc::c_char,
+) -> Result<()> {
+    let file_path = get_str!(file_path);
+    let config = FileBasedConfiguration::from_path(file_path, true)?;
+    point_to_string(version, config.nlu_configuration.model_version)
+}
+
+fn read_model_version_from_zip(
+    zip: *const libc::c_uchar,
+    zip_size: libc::c_uint,
+    version: *mut *const libc::c_char,
+) -> Result<()> {
+    let slice = unsafe { slice::from_raw_parts(zip, zip_size as usize) };
+    let reader = Cursor::new(slice.to_owned());
+
+    let config = ZipBasedConfiguration::new(reader, true)?;
+    point_to_string(version, config.nlu_configuration.model_version)
 }
 
 fn point_to_string(pointer: *mut *const libc::c_char, string: String) -> Result<()> {
