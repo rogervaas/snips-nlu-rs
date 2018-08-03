@@ -34,7 +34,6 @@ fn nlu_parsing(b: &mut Bencher) {
         .unwrap();
 
     b.iter(|| {
-        BuiltinEntityParserFactory::clear();
         let _ = nlu_engine.parse(&sentence, None);
     });
 }

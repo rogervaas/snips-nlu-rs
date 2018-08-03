@@ -4,12 +4,12 @@ use std::iter::FromIterator;
 use std::ops::Range;
 use std::path::Path;
 use std::str::FromStr;
-use std::sync;
+use std::sync::{Arc, Mutex};
 
 use crfsuite::Tagger as CRFSuiteTagger;
 use itertools::Itertools;
 
-use builtin_entity_parsing::{BuiltinEntityParserFactory, CachingBuiltinEntityParser};
+use builtin_entity_parsing::CachingBuiltinEntityParser;
 use errors::*;
 use failure::ResultExt;
 use language::FromLanguage;
@@ -18,27 +18,29 @@ use nlu_utils::language::Language as NluUtilsLanguage;
 use nlu_utils::range::ranges_overlap;
 use nlu_utils::string::substring_with_char_range;
 use nlu_utils::token::{tokenize, Token};
+use resources::SharedResources;
 use serde_json;
 use slot_filler::crf_utils::*;
 use slot_filler::feature_processor::ProbabilisticFeatureProcessor;
 use slot_filler::SlotFiller;
 use slot_utils::*;
 use snips_nlu_ontology::{BuiltinEntity, BuiltinEntityKind, Language};
-use utils::FromPath;
-
 use utils::{EntityName, SlotName};
 
 pub struct CRFSlotFiller {
     language: Language,
     tagging_scheme: TaggingScheme,
-    tagger: sync::Mutex<CRFSuiteTagger>,
+    tagger: Mutex<CRFSuiteTagger>,
     feature_processor: ProbabilisticFeatureProcessor,
     slot_name_mapping: HashMap<SlotName, EntityName>,
-    builtin_entity_parser: sync::Arc<CachingBuiltinEntityParser>,
+    shared_resources: Arc<SharedResources>,
 }
 
-impl FromPath for CRFSlotFiller {
-    fn from_path<P: AsRef<Path>>(path: P) -> Result<Self> {
+impl CRFSlotFiller {
+    pub fn from_path<P: AsRef<Path>>(
+        path: P,
+        shared_resources: Arc<SharedResources>,
+    ) -> Result<Self> {
         let slot_filler_model_path = path.as_ref().join("slot_filler.json");
         let model_file = fs::File::open(&slot_filler_model_path)
             .with_context(|_| format!("Cannot open CRFSlotFiller file '{:?}'",
@@ -48,21 +50,20 @@ impl FromPath for CRFSlotFiller {
 
         let tagging_scheme = TaggingScheme::from_u8(model.config.tagging_scheme)?;
         let slot_name_mapping = model.slot_name_mapping;
-        let feature_processor =
-            ProbabilisticFeatureProcessor::new(&model.config.feature_factory_configs)?;
+        let feature_processor = ProbabilisticFeatureProcessor::new(
+            &model.config.feature_factory_configs, shared_resources.clone())?;
         let crf_path = path.as_ref().join(&model.crf_model_file);
         let tagger = CRFSuiteTagger::create_from_file(&crf_path)
             .with_context(|_| format!("Cannot create CRFSuiteTagger from file '{:?}'", &crf_path))?;
         let language = Language::from_str(&model.language_code)?;
-        let builtin_entity_parser = BuiltinEntityParserFactory::get(language)?;
 
         Ok(Self {
             language,
             tagging_scheme,
-            tagger: sync::Mutex::new(tagger),
+            tagger: Mutex::new(tagger),
             feature_processor,
             slot_name_mapping,
-            builtin_entity_parser,
+            shared_resources,
         })
     }
 }
@@ -124,7 +125,7 @@ impl SlotFiller for CRFSlotFiller {
             &updated_tags,
             self,
             &self.slot_name_mapping,
-            &self.builtin_entity_parser,
+            &self.shared_resources.builtin_entity_parser,
             &builtin_slots,
         )?;
         Ok(augmented_slots)
@@ -370,7 +371,8 @@ mod tests {
     use nlu_utils::language::Language as NluUtilsLanguage;
     use snips_nlu_ontology::{Grain, InstantTimeValue, Language, NumberValue, Precision, SlotValue};
     use utils::file_path;
-    use resources::loading::load_resources;
+    use resources::loading::load_language_resources;
+    use testutils::english_shared_resources;
 
     #[derive(Debug, Fail)]
     pub enum TestError {
@@ -414,12 +416,6 @@ mod tests {
         }
     }
 
-    impl FromPath for TestSlotFiller {
-        fn from_path<P: AsRef<Path>>(_path: P) -> Result<Self> {
-            unimplemented!()
-        }
-    }
-
     #[test]
     fn from_path_works() {
         // Given
@@ -431,11 +427,12 @@ mod tests {
             .join("probabilistic_intent_parser")
             .join("slot_filler_MakeCoffee");
 
-        let resources_path = trained_engine_path.join("resources");
-        load_resources(resources_path).unwrap();
+        let resources_path = trained_engine_path.join("resources").join("en");
+        load_language_resources(resources_path).unwrap();
 
         // When
-        let slot_filler = CRFSlotFiller::from_path(slot_filler_path).unwrap();
+        let slot_filler = CRFSlotFiller::from_path(
+            slot_filler_path, english_shared_resources()).unwrap();
         let slots = slot_filler.get_slots("make me two cups of coffee").unwrap();
 
         // Then
@@ -444,7 +441,7 @@ mod tests {
                 value: "two".to_string(),
                 char_range: 8..11,
                 entity: "snips/number".to_string(),
-                slot_name: "number_of_cups".to_string()
+                slot_name: "number_of_cups".to_string(),
             }
         ];
         assert_eq!(expected_slots, slots);
